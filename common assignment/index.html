@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniOpt — Scientific Compiler & Intermediate Code Generation Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+  <!-- Background Glow & Grid -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="cyber-grid"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-title">OmniOpt <span class="badge-tag">DSL COMPILER</span></div>
+          <div class="logo-subtitle">Intermediate Code Generator & Optimizer for Scientific Computing</div>
+        </div>
+      </div>
+
+      <!-- Quick Preset Selector -->
+      <div class="preset-container">
+        <span class="preset-label">Load Preset:</span>
+        <div class="preset-buttons">
+          <button class="btn-preset active" id="preset-finance" title="Computational Finance Formula">Finance (Prompt)</button>
+          <button class="btn-preset" id="preset-physics" title="Kinetic + Potential Energy (CSE Demo)">Physics Energy</button>
+          <button class="btn-preset" id="preset-constants" title="Heavy Constant Folding & Simplification">Constant Folding</button>
+          <button class="btn-preset" id="preset-quadratic" title="Quadratic Discriminant Redundancy">Discriminant</button>
+          <button class="btn-preset" id="preset-custom" title="Multi-term polynomial">Polynomial</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace-grid">
+      <!-- Left Column: Input, Config & Live AST -->
+      <section class="panel panel-input">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="step-num">01</span> Source Expression (DSL)
+          </div>
+          <div class="header-actions">
+            <button class="btn-action" id="btn-sample-clear" title="Clear expression">Clear</button>
+          </div>
+        </div>
+
+        <div class="input-wrapper">
+          <div class="editor-bar">
+            <span class="editor-lang">LANG: SCI-EXPR v2.4</span>
+            <span class="editor-status" id="parse-status"><span class="status-dot success"></span> Valid Syntax</span>
+          </div>
+          <textarea id="expression-input" spellcheck="false" rows="3" placeholder="Enter assignment or arithmetic expression (e.g. finalValue = ((principal * rate * time) / 100) + (principal * (1 + rate/100)^time) - fees)">finalValue = ((principal * rate * time) / 100) + (principal * (1 + rate/100)^time) - fees</textarea>
+        </div>
+
+        <!-- Optimization Passes Toggle -->
+        <div class="opt-toggles-card">
+          <div class="toggles-header">
+            <span>Optimization Pipeline Control</span>
+            <button class="btn-link" id="btn-select-all-opt">Enable All</button>
+          </div>
+          <div class="toggles-grid">
+            <label class="toggle-item">
+              <input type="checkbox" id="opt-cf" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-info">
+                <strong>Constant Folding & Propagation</strong>
+                <small>Evaluates constant subtrees & algebraic identities</small>
+              </span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" id="opt-cse" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-info">
+                <strong>Common Subexpression Elimination</strong>
+                <small>Eliminates duplicate computation trees (CSE)</small>
+              </span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" id="opt-dce" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-info">
+                <strong>Dead Code & Copy Propagation</strong>
+                <small>Removes unreferenced temporaries & simplifies copies</small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Syntax Tree Visualization -->
+        <div class="ast-card">
+          <div class="ast-card-header">
+            <div class="ast-title">
+              <span class="step-num">02</span> Abstract Syntax Tree (AST)
+            </div>
+            <div class="ast-controls">
+              <button class="btn-sm" id="btn-zoom-fit">Reset View</button>
+              <span class="ast-legend">
+                <span class="dot dot-op"></span> Op
+                <span class="dot dot-var"></span> Var
+                <span class="dot dot-num"></span> Const
+              </span>
+            </div>
+          </div>
+          <div class="ast-viewport" id="ast-container">
+            <svg id="ast-svg" width="100%" height="340"></svg>
+          </div>
+        </div>
+
+        <!-- Variable Evaluator / Interactive Simulation -->
+        <div class="simulator-card">
+          <div class="simulator-header">
+            <div class="simulator-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+              Live Numerical Verification & Equivalence Test
+            </div>
+          </div>
+          <p class="simulator-desc">Provide sample values to dynamically evaluate Unoptimized TAC vs Optimized TAC & verify strict algebraic equivalence.</p>
+          <div class="vars-grid" id="variables-inputs">
+            <!-- Dynamically populated variable fields -->
+          </div>
+          <div class="eval-result-box" id="eval-result-box">
+            <div class="eval-row">
+              <span class="eval-label">Original AST Value:</span>
+              <span class="eval-val" id="val-ast">—</span>
+            </div>
+            <div class="eval-row">
+              <span class="eval-label">Unoptimized TAC:</span>
+              <span class="eval-val" id="val-unopt">—</span>
+            </div>
+            <div class="eval-row">
+              <span class="eval-label">Optimized TAC:</span>
+              <span class="eval-val highlight" id="val-opt">—</span>
+            </div>
+            <div class="eval-status" id="eval-status-badge">Equivalence: Verified ✓</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: TAC, Quadruples, Triples, Passes & Metrics -->
+      <section class="panel panel-output">
+        <!-- Metrics Banner -->
+        <div class="metrics-banner">
+          <div class="metric-card">
+            <span class="metric-title">Original Instructions</span>
+            <span class="metric-value" id="metric-unopt-count">0</span>
+            <span class="metric-sub" id="metric-unopt-temps">0 temporaries</span>
+          </div>
+          <div class="metric-arrow">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+          <div class="metric-card highlight">
+            <span class="metric-title">Optimized Instructions</span>
+            <span class="metric-value accent" id="metric-opt-count">0</span>
+            <span class="metric-sub" id="metric-opt-temps">0 temporaries</span>
+          </div>
+          <div class="metric-card stats-badge">
+            <span class="metric-title">Instruction Reduction</span>
+            <span class="metric-value green" id="metric-reduction">0%</span>
+            <span class="metric-sub" id="metric-flops-saved">0 ops eliminated</span>
+          </div>
+          <div class="metric-card stats-badge">
+            <span class="metric-title">Speedup Estimate</span>
+            <span class="metric-value purple" id="metric-speedup">1.0x</span>
+            <span class="metric-sub">Execution Cost Ratio</span>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs for Code Representations -->
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="tab-tac">
+            <span class="tab-icon">⚡</span> Three-Address Code (TAC)
+          </button>
+          <button class="tab-btn" data-tab="tab-quads">
+            <span class="tab-icon">📊</span> Quadruples
+          </button>
+          <button class="tab-btn" data-tab="tab-triples">
+            <span class="tab-icon">📑</span> Triples & Indirect Triples
+          </button>
+          <button class="tab-btn" data-tab="tab-pipeline">
+            <span class="tab-icon">🔬</span> Pass-by-Pass Breakdown
+          </button>
+          <button class="tab-btn" data-tab="tab-comparison">
+            <span class="tab-icon">⚖️</span> Optimization Comparison
+          </button>
+        </div>
+
+        <!-- Tab 1: Three-Address Code -->
+        <div class="tab-content active" id="tab-tac">
+          <div class="side-by-side-grid">
+            <div class="code-panel">
+              <div class="code-panel-header">
+                <span class="code-panel-title">Non-Optimized TAC</span>
+                <button class="btn-copy" onclick="copyText('raw-tac-unopt')">Copy</button>
+              </div>
+              <div class="code-body line-numbers" id="raw-tac-unopt">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+
+            <div class="code-panel optimized-border">
+              <div class="code-panel-header">
+                <span class="code-panel-title"><span class="badge-opt">OPTIMIZED</span> Three-Address Code</span>
+                <button class="btn-copy" onclick="copyText('raw-tac-opt')">Copy</button>
+              </div>
+              <div class="code-body line-numbers" id="raw-tac-opt">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Quadruples -->
+        <div class="tab-content" id="tab-quads">
+          <div class="view-mode-toggle">
+            <span class="view-label">Show Quadruples for:</span>
+            <div class="segmented-control">
+              <button class="seg-btn active" id="btn-quad-opt">Optimized IR</button>
+              <button class="seg-btn" id="btn-quad-unopt">Non-Optimized IR</button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="ir-table" id="quadruple-table">
+              <thead>
+                <tr>
+                  <th style="width: 10%">#</th>
+                  <th style="width: 20%">Operator (Op)</th>
+                  <th style="width: 25%">Argument 1 (Arg1)</th>
+                  <th style="width: 25%">Argument 2 (Arg2)</th>
+                  <th style="width: 20%">Result (Dest)</th>
+                </tr>
+              </thead>
+              <tbody id="quad-tbody">
+                <!-- Generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Triples & Indirect Triples -->
+        <div class="tab-content" id="tab-triples">
+          <div class="view-mode-toggle">
+            <span class="view-label">Show Triples for:</span>
+            <div class="segmented-control">
+              <button class="seg-btn active" id="btn-triple-opt">Optimized IR</button>
+              <button class="seg-btn" id="btn-triple-unopt">Non-Optimized IR</button>
+            </div>
+          </div>
+
+          <div class="triples-dual-grid">
+            <div class="triple-card">
+              <div class="triple-card-header">
+                <h3>Direct Triples</h3>
+                <small>Implicit temporary locations referenced by index (x)</small>
+              </div>
+              <div class="table-container">
+                <table class="ir-table" id="triples-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 15%">Index</th>
+                      <th style="width: 25%">Operator</th>
+                      <th style="width: 30%">Argument 1</th>
+                      <th style="width: 30%">Argument 2</th>
+                    </tr>
+                  </thead>
+                  <tbody id="triple-tbody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="triple-card">
+              <div class="triple-card-header">
+                <h3>Indirect Triples</h3>
+                <small>Pointer array addressing triples (enables fast code motion)</small>
+              </div>
+              <div class="table-container">
+                <table class="ir-table" id="indirect-triples-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 25%">Pointer Index</th>
+                      <th style="width: 35%">Target Statement</th>
+                      <th style="width: 40%">Statement Content</th>
+                    </tr>
+                  </thead>
+                  <tbody id="indirect-triple-tbody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Step-by-Step Optimization Breakdown -->
+        <div class="tab-content" id="tab-pipeline">
+          <div class="pipeline-flow" id="pipeline-steps-container">
+            <!-- Dynamic optimization pipeline stages -->
+          </div>
+        </div>
+
+        <!-- Tab 5: Optimization Analysis & Efficiency Report -->
+        <div class="tab-content" id="tab-comparison">
+          <div class="comparison-grid">
+            <!-- Analysis Summary Card -->
+            <div class="comp-card">
+              <div class="comp-card-header">
+                <div class="comp-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  Compiler Optimization Audit Report
+                </div>
+              </div>
+              <div class="audit-body" id="audit-report-content">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+
+            <!-- Cost Matrix Table -->
+            <div class="comp-card">
+              <div class="comp-card-header">
+                <div class="comp-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                  Instruction Cost & Execution Profiler
+                </div>
+              </div>
+              <div class="table-container">
+                <table class="ir-table" id="cost-matrix-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Unoptimized</th>
+                      <th>Optimized</th>
+                      <th>Delta / Savings</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cost-matrix-tbody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span>Scientific Computing Intermediate Code Generation Workbench</span>
+        <span class="sep">•</span>
+        <span>Three-Address Code | Quadruples | Triples | CSE | Constant Folding | DCE</span>
+      </div>
+      <div class="footer-right">
+        <span>OmniOpt Compiler Engine v2.4</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="compiler.js"></script>
+</body>
+</html>
